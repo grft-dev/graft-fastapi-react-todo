@@ -3,8 +3,8 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(pip install:*)",
-      "Bash(python3 -m pytest backend/test_api.py -v)",
-      "Bash(python3:*)",
+      "Bash(python -m pytest backend/tests:*)",
+      "Bash(python:*)",
       "Bash(npm install)",
       "Bash(npx playwright:*)",
       "Bash(npm run dev:*)",

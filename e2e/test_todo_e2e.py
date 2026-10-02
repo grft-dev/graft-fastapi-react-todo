@@ -3,13 +3,18 @@ import requests
 import subprocess
 import time
 import os
-import signal
+import shutil
+import sys
 import tempfile
+from pathlib import Path
 from playwright.sync_api import Page, expect, Browser, BrowserContext, Playwright, sync_playwright
 
 # Test environment uses different ports
 API_URL = "http://localhost:8001"
 APP_URL = "http://localhost:5175"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+BACKEND_DIR = PROJECT_ROOT / "backend"
+FRONTEND_DIR = PROJECT_ROOT / "frontend"
 
 class TestTodoAppE2E:
     """End-to-end tests for Todo App"""
@@ -21,15 +26,15 @@ class TestTodoAppE2E:
         frontend_process = None
         
         try:
-            # Start test backend on port 8001 using main.py with APP_ENV=test
+            # Start the test backend with the same Python environment as pytest.
             env = os.environ.copy()
             env["APP_ENV"] = "test"
             
             backend_process = subprocess.Popen(
-                ["../backend/.venv/bin/python", "main.py"],
-                cwd="../backend",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"],
+                cwd=BACKEND_DIR,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.STDOUT,
                 env=env
             )
             
@@ -44,16 +49,18 @@ class TestTodoAppE2E:
             else:
                 raise Exception("Backend failed to start")
             
-            # Start test frontend on port 5174
+            # Start the test frontend on its dedicated E2E port.
             frontend_env = os.environ.copy()
             frontend_env["VITE_API_URL"] = API_URL
-            frontend_env["PORT"] = "5175"
+            npm_command = shutil.which("npm")
+            if npm_command is None:
+                raise RuntimeError("npm is required to run E2E tests")
             
             frontend_process = subprocess.Popen(
-                ["npm", "run", "dev", "--", "--port", "5175"],
-                cwd="../frontend",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                [npm_command, "run", "dev", "--", "--port", "5175"],
+                cwd=FRONTEND_DIR,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.STDOUT,
                 env=frontend_env
             )
             
@@ -88,9 +95,15 @@ class TestTodoAppE2E:
                     frontend_process.kill()
             
             # Clean up test database
-            test_db_file = os.path.join(tempfile.gettempdir(), "test_todo.db")
-            if os.path.exists(test_db_file):
-                os.remove(test_db_file)
+            test_db_file = os.path.join(tempfile.gettempdir(), "todos_test.sqlite")
+            for _ in range(10):
+                if not os.path.exists(test_db_file):
+                    break
+                try:
+                    os.remove(test_db_file)
+                    break
+                except PermissionError:
+                    time.sleep(0.2)
 
     @pytest.fixture(scope="session")
     def browser(self):
@@ -122,7 +135,7 @@ class TestTodoAppE2E:
 
     @pytest.fixture(autouse=True)
     def cleanup_todos(self):
-        """Clean up todos before each test - optimized for speed"""
+        """Clean up todos and reset IDs before each test."""
         try:
             # Get all todos
             response = requests.get(f"{API_URL}/api/todos", timeout=2)
@@ -358,6 +371,7 @@ class TestTodoAppE2E:
         # Create first todo
         page.fill('[data-testid="todo-title-input"]', "First Todo")
         page.click('[data-testid="create-todo-btn"]')
+        expect(page.locator('[data-testid="todo-1"]')).to_be_visible()
         
         # Create second todo
         page.fill('[data-testid="todo-title-input"]', "Second Todo")
@@ -386,6 +400,7 @@ class TestTodoAppE2E:
         page.fill('[data-testid="todo-title-input"]', "Persistent Todo")
         page.fill('[data-testid="todo-description-input"]', "Should survive refresh")
         page.click('[data-testid="create-todo-btn"]')
+        expect(page.locator('[data-testid="todo-1"]')).to_be_visible()
         
         # Toggle completion
         page.click('[data-testid="toggle-1"]')
@@ -407,10 +422,12 @@ class TestTodoAppE2E:
         page.fill('[data-testid="todo-title-input"]', "Task 1")
         page.fill('[data-testid="todo-description-input"]', "First task")
         page.click('[data-testid="create-todo-btn"]')
+        expect(page.locator('[data-testid="todo-1"]')).to_be_visible()
         
         page.fill('[data-testid="todo-title-input"]', "Task 2")
         page.fill('[data-testid="todo-description-input"]', "Second task")
         page.click('[data-testid="create-todo-btn"]')
+        expect(page.locator('[data-testid="todo-2"]')).to_be_visible()
         
         # Mark first todo as completed
         page.click('[data-testid="toggle-1"]')

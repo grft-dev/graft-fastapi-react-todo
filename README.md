@@ -1,189 +1,128 @@
-# 📝 Todo List App
+# Graftcode FastAPI + React Todo
 
-<div align="center">
+A small full-stack reference application designed to be easy for people and coding
+agents to understand, run, and adapt.
 
-![Tests](https://img.shields.io/badge/Tests-25%20Passing-success?style=for-the-badge)
-<!-- insert other badges here -->
+## What “Graftcode” means here
 
-**A full-stack todo list app repo template to kickstart any of your projects**
+This repository demonstrates a clearly layered existing application that can be
+used as a Graftcode starter or reference project. Its business operations are
+kept behind a stable HTTP contract so tools and agents can build on trusted
+application logic.
 
-*Built with FastAPI + React Vite, JSX + Comprehensive Integration Testing*
+This repository does **not** contain a Graftcode runtime, SDK, or production
+agent integration. Those integrations should call or expose the documented
+application boundary instead of depending on UI implementation details.
 
-Iterate from a todo list to any app. Use this repo as a base.
+## Stable application boundary
 
-</div>
+The public todo contract is:
 
-### Quick Start TLDR
+- `GET /` — API metadata
+- `GET /api/todos` — list todos
+- `POST /api/todos` — create a todo
+- `GET /api/todos/{todo_id}` — get one todo
+- `PUT /api/todos/{todo_id}` — update a todo
+- `POST /api/todos/{todo_id}/toggle` — toggle completion
+- `DELETE /api/todos/{todo_id}` — delete a todo
 
-- 1 - Clone the repo
-- 2 - Run claude code or your favourite coding CLI
-- 3 - Run this prompt: `this is a todolist app - you need to change this todolist app to be a .... `
-- 4 - profit!
+Todo responses contain `id`, `title`, `description`, and `completed`. See the
+generated OpenAPI document at `http://localhost:8000/docs`.
 
----
+## Architecture
 
-## 🏗️ Project Structure
-
-### Backend Architecture (Python/FastAPI)
-
-```
-backend/
-├── main.py              # FastAPI application setup and route definitions
-├── models.py            # Database models using Peewee ORM
-├── schemas.py           # Pydantic models for request/response validation
-├── services.py          # Business logic layer with service classes
-├── controllers.py       # HTTP request/response handling layer
-├── repositories.py      # Data access layer with repository pattern
-├── test_api.py         # Unit and integration tests
-└── requirements.txt     # Python dependencies
-```
-
-**Object-Oriented Design Patterns:**
-
-- **Service Layer**: `TodoService` handles all business logic operations
-- **Repository Pattern**: `TodoRepository` manages data access and response model conversion
-- **Controller Layer**: `TodoController` handles HTTP concerns and error translation
-- **Custom Exceptions**: Domain-specific exceptions for better error handling
-- **Dependency Injection**: Clean separation of concerns with minimal coupling
-
-### Frontend Architecture (React/Vite)
-
-```
-frontend/
-├── src/
-│   ├── App.jsx                    # Main application component
-│   ├── main.jsx                   # Application entry point with providers
-│   ├── services/
-│   │   ├── ApiService.js          # Base HTTP client class
-│   │   └── TodoService.js         # Todo-specific API operations
-│   ├── hooks/
-│   │   └── useTodos.js            # Custom hook for todo operations
-│   └── index.css                  # Global styles
-├── package.json             # Dependencies and scripts
-├── vite.config.js          # Build configuration
-└── playwright.config.js    # E2E test configuration
+```text
+React components
+  -> useTodos
+  -> TodosApiClient
+  -> FastAPI todo router
+  -> TodoService
+  -> TodoRepository
+  -> Peewee / SQLite
 ```
 
-### End-to-End Testing
+Backend responsibilities:
 
-```
-e2e/
-├── test_todo_e2e.py    # Comprehensive user workflow tests
-└── pyproject.toml      # Test configuration
-```
+- `backend/app/api/routers/` translates HTTP requests and errors.
+- `backend/app/services/` contains application operations.
+- `backend/app/repositories/` owns persistence queries.
+- `backend/app/models/` contains Peewee database models.
+- `backend/app/schemas/` defines the public API contracts.
+- `backend/app/core/` contains settings and database infrastructure.
+- `backend/app/domain/` contains framework-independent domain errors.
 
-## 🚀 Quick Start
+Frontend responsibilities:
 
-<div align="center">
+- `frontend/src/api/` contains transport and resource clients.
+- `frontend/src/hooks/` manages server state with TanStack Query.
+- `frontend/src/components/` contains focused UI components.
+- `frontend/src/App.jsx` composes the application screen.
 
-### ⚡ **Get Running in 60 Seconds**
+## Local development
 
-</div>
+Prerequisites: Python 3.11+, Node.js 18+, and npm.
 
-### Prerequisites
-- **Python 3.11+** 🐍
-- **Node.js 18+** 📦 
-- **npm/yarn** ⚙️
-
-### 1. Clone & Setup
 ```bash
-git clone <repository-url>
-cd vite-python-fastapi-todolist
-
-# Backend setup 🐍
 cd backend
-pip install -r requirements.txt
-
-# Frontend setup ⚛️
-cd ../frontend
-npm install
+python -m venv .venv
+# Activate .venv using the command for your shell
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
-### 2. Development Mode
-```bash
-# Terminal 1: Backend (Port 8000) 🚀
-cd backend
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+In another terminal:
 
-# Terminal 2: Frontend (Port 5173) ⚡
+```bash
 cd frontend
+npm install
 npm run dev
 ```
 
-### 3. Run Tests 🧪
+Open `http://localhost:5173`. The API runs at `http://localhost:8000`.
+
+## Tests
+
+Backend contract tests:
+
 ```bash
-# 🔬 Backend unit tests (12 tests, 0.45s)
 cd backend
-pytest test_api.py -v
-
-# 🌐 End-to-end tests (13 tests, 10.4s)
-cd e2e && python3 -m pytest test_todo_e2e.py -v
-
-# ⚡ Quick smoke test
-python3 -m pytest test_todo_e2e.py::TestTodoAppE2E::test_app_title -v
+python -m pytest tests
 ```
 
-<div align="center">
+The canonical browser suite is the Python Playwright suite under `e2e/`:
 
-### 🎉 **That's it! Your todo app is live!**
-
-**Frontend**: http://localhost:5173 | **API**: http://localhost:8000 | **Docs**: http://localhost:8000/docs
-
-</div>
-
-## 📡 API Reference
-
-All API endpoints are prefixed with `/api/todos`
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/` | Get all todos |
-| `POST` | `/` | Create new todo |
-| `GET` | `/{id}` | Get specific todo |
-| `PUT` | `/{id}` | Update todo |
-| `POST` | `/{id}/toggle` | Toggle todo completion |
-| `DELETE` | `/{id}` | Delete todo |
-
-### Example Requests
-
-**Create Todo**
 ```bash
-POST /api/todos
-Content-Type: application/json
-
-{
-  "title": "Learn FastAPI",
-  "description": "Build a todo app with Python and React"
-}
+cd e2e
+python -m pip install -r requirements.txt
+python -m playwright install chromium
+python -m pytest test_todo_e2e.py
 ```
 
-**Toggle Todo Completion**
+It starts isolated services on ports `8001` and `5175` and uses
+`todos_test.sqlite` in the operating-system temporary directory.
+
+To run both complete suites:
+
 ```bash
-POST /api/todos/1/toggle
+python run_all_tests.py
 ```
 
-## 🔧 Development Workflow
+Cross-platform Invoke aliases are also available in `tasks.py`, for example
+`inv backend`, `inv frontend`, and `inv test-all`.
 
-### Day-to-Day Development
-1. **Start Services**: Backend (port 8000) + Frontend (port 5173)
-2. **Interactive API Docs**: Visit http://localhost:8000/docs for Swagger UI
-3. **Hot Reload**: Both services support hot reload for rapid development
-4. **Testing**: Run unit tests first, then E2E tests for integration validation
+## Configuration
 
-### Key Development URLs
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Alternative API docs**: http://localhost:8000/redoc
+- `APP_ENV`: `development` (default), `test`, or `production`
+- `DATABASE_PATH`: optional SQLite path override
+- `SERVER_HOST`: optional backend host override
+- `SERVER_PORT`: optional backend port override
+- `VITE_API_URL`: frontend API origin; defaults to `http://localhost:8000`
 
----
+## Docker
 
-NOTE:
+```bash
+docker compose up --build
+```
 
-Integration tests passing in 0.12s
-
-Iterate on integration tests but also have at the end of your session / context limit a e2e test run to pass.
-
----
-
-Iterate from a todo list to any app. Use this repo as a base.
+Production data is persisted as `/app/data/todos_production.sqlite` in the
+`sqlite_data` volume.

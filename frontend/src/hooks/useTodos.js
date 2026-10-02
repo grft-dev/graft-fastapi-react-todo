@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@chakra-ui/react";
-import TodoService from "../services/TodoService.js";
+import { todosApi } from "../api/TodosApiClient.js";
 
 /**
  * Custom toast function with enhanced styling
@@ -34,17 +34,16 @@ const useTodos = () => {
   const queryClient = useQueryClient();
   const toast = useToast();
   const styledToast = createStyledToast(toast);
-  const todoService = new TodoService();
 
   // Query for fetching all todos
   const todosQuery = useQuery({
     queryKey: ["todos"],
-    queryFn: () => todoService.fetchTodos(),
+    queryFn: () => todosApi.listTodos(),
   });
 
   // Mutation for creating a todo
   const createTodoMutation = useMutation({
-    mutationFn: ({ title, description }) => todoService.createTodo(title, description),
+    mutationFn: ({ title, description }) => todosApi.createTodo(title, description),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
       styledToast({
@@ -68,7 +67,7 @@ const useTodos = () => {
 
   // Mutation for updating a todo
   const updateTodoMutation = useMutation({
-    mutationFn: ({ id, updates }) => todoService.updateTodo(id, updates),
+    mutationFn: ({ id, updates }) => todosApi.updateTodo(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
@@ -85,7 +84,7 @@ const useTodos = () => {
 
   // Mutation for toggling todo completion
   const toggleCompletionMutation = useMutation({
-    mutationFn: (id) => todoService.toggleTodoCompletion(id),
+    mutationFn: (id) => todosApi.toggleTodo(id),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
       styledToast({
@@ -109,8 +108,8 @@ const useTodos = () => {
 
   // Mutation for deleting a todo
   const deleteTodoMutation = useMutation({
-    mutationFn: (id) => todoService.deleteTodo(id),
-    onSuccess: (_, deletedId) => {
+    mutationFn: (id) => todosApi.deleteTodo(id),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
       styledToast({
         title: "Todo deleted",
