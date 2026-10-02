@@ -1,7 +1,9 @@
 __pycache__
+.pytest_cache
 *.db
 *.sqlite
 node_modules
+frontend/dist
 test-results
 playwright-report
 .venv
